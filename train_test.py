@@ -63,14 +63,14 @@ if __name__ == '__main__':
         torch.nn.Linear(l3, l4),
     )
 
-    epochs = 1000
+    # epochs = 1000
 
-    losses = train(model, epochs)
-    test_model(model, 500)
+    # losses = train(model, epochs)
+    # test_model(model, 500)
 
-    plt.xlabel('epochs')
-    plt.ylabel('losses')
-    mavg = moving_average(losses, 50)
-    plt.plot(mavg)
-    plt.show()
+    # plt.xlabel('epochs')
+    # plt.ylabel('losses')
+    # mavg = moving_average(losses, 50)
+    # plt.plot(mavg)
+    # plt.show()
 

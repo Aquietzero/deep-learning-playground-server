@@ -59,6 +59,7 @@ class GridWorld:
         self.set_grid(0, 0, 'start')
         self.set_grid(0, 3, 'goal')
         self.set_grid(0, 2, 'pit')
+        self.set_grid(2, 1, 'pit')
         self.set_grid(2, 3, 'pit')
 
     def set_grid(self, row, col, type):
