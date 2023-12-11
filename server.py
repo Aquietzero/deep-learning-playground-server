@@ -14,12 +14,12 @@ def hello_world():
     }
     return res
 
-GridWorldController(app)
-
 socketio = SocketIO(
     app,
     cors_allowed_origins='*',
     cors_credentials=False)
+
+GridWorldController(app, socketio)
 
 if __name__ == '__main__':
     socketio.run(app)

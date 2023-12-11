@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     plt.xlabel('epochs')
     plt.ylabel('losses')
-    plt.plot(moving_average(losses, 100))
+    mavg = moving_average(losses, 50)
+    plt.plot(mavg)
     plt.show()
 

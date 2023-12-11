@@ -1,9 +1,13 @@
 from flask import request
 from environments import GridWorld
+from deep_learning.gridworld_with_q_learning import train
+
+import numpy as np
+import torch
 
 gridworld = GridWorld()
 
-def GridWorldController(app):
+def GridWorldController(app, socketio):
     @app.post('/gridworld/step')
     def gridworld_step():
         data = request.get_json()
@@ -25,3 +29,24 @@ def GridWorldController(app):
             'map': grids
         }
 
+    @app.get('/gridworld/train')
+    def gridworld_train():
+        l1 = 64
+        l2 = 150
+        l3 = 100
+        l4 = 4
+
+        model = torch.nn.Sequential(
+            torch.nn.Linear(l1, l2),
+            torch.nn.ReLU(),
+            torch.nn.Linear(l2, l3),
+            torch.nn.ReLU(),
+            torch.nn.Linear(l3, l4),
+        )
+
+        epochs = 100
+
+        losses = train(model, epochs, socketio)
+        return {
+            'losses': losses
+        }

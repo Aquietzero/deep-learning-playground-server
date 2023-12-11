@@ -4,7 +4,7 @@ import random
 from environments import GridWorld
 from utils.tools import clear_console
 
-def train(model, epochs):
+def train(model, epochs, socketio):
     losses = []
 
     loss_fn = torch.nn.MSELoss()
@@ -52,6 +52,8 @@ def train(model, epochs):
             optimizer.zero_grad()
             loss.backward()
             losses.append(loss.item())
+
+            socketio.emit('training_info', {'loss': loss.item()})
             optimizer.step()
             state1 = state2
             if reward != -1:
@@ -59,6 +61,11 @@ def train(model, epochs):
 
         if epsilon > 0.1:
             epsilon -= (1/epochs)
+
+        socketio.emit('progress', {
+            'epochs': epochs,
+            'current': i + 1,
+        })
 
         clear_console()
         print('epochs: %d / %d' % (i + 1, epochs))
