@@ -39,6 +39,7 @@ def GridWorldController(app, socketio):
     def gridworld_train():
         data = request.get_json()
         model_name = data['modelName']
+        mode = data['mode']
 
         model = torch.nn.Sequential(
             torch.nn.Linear(l1, l2),
@@ -51,7 +52,7 @@ def GridWorldController(app, socketio):
         epochs = 1000
 
         def env_producer():
-            return GridWorld(size=5)
+            return GridWorld(size=5, mode=mode)
 
         losses = train(env_producer, model, epochs, socketio)
 
@@ -69,9 +70,9 @@ def GridWorldController(app, socketio):
         model_path = get_model_path(model_name)
         model = torch.load(model_path)
 
-        game = GridWorld(size=5)
+        game = GridWorld(size=5, mode='random')
         grids = {}
-        for i, (id, grid) in enumerate(gridworld.grids.items()):
+        for i, (id, grid) in enumerate(game.grids.items()):
             grids[id] = grid.__dict__
 
             game.current_state = i
@@ -89,12 +90,13 @@ def GridWorldController(app, socketio):
     def gridworld_model_test():
         data = request.get_json()
         model_name = data['modelName']
+        mode = data['mode']
 
         model_path = get_model_path(model_name)
         model = torch.load(model_path)
 
         def env_producer():
-            return GridWorld(size=5)
+            return GridWorld(size=5, mode=mode)
 
         test_model(env_producer, model, 1000, socketio)
 

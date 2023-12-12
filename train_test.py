@@ -5,38 +5,34 @@ import matplotlib.pyplot as plt
 from deep_learning.gridworld_with_q_learning import train
 
 from environments import GridWorld
-from utils.tools import moving_average
+from utils.tools import moving_average, get_model_path
 
-# def test():
-#     game = GridWorld()
-#     done = False
-#     action_map = ['up', 'right', 'down', 'left']
-#     while not done:
-#         action = np.random.randint(0, 4)
-#         state, done = game.take_action(action)
-#         print('state %d, action %s, reward %d' % (state, action_map[action], game.reward()))
+def env_producer():
+    return GridWorld(size=5, mode='random')
 
-def runover(model):
-    game = GridWorld()
+def runover(env_producer, model):
+    game = env_producer()
     done = False
     while not done:
-        state_ = game.encode_state().reshape(1, 64) + np.random.rand(1, 64) / 10.0
+        state_ = game.encode_state()
         state = torch.from_numpy(state_).float()
         qval = model(state)
         qval_ = qval.data.numpy()
         action = np.argmax(qval_)
-        _, done = game.take_action(action)
+        _, done, truncated = game.take_action(action)
 
         if done:
             if game.reward() > 0:
                 return True
             else:
                 return False
+        if truncated:
+            return False
 
 def test_model(model, num_games):
     win_count = 0
     for i in range(num_games):
-        win = runover(model)
+        win = runover(env_producer, model)
         if win:
             win_count += 1
 
@@ -63,10 +59,12 @@ if __name__ == '__main__':
         torch.nn.Linear(l3, l4),
     )
 
-    # epochs = 1000
+    epochs = 1000
 
-    # losses = train(model, epochs)
-    # test_model(model, 500)
+    # losses = train(env_producer, model, epochs)
+    model_path = get_model_path('gridworld-q-learning-simple-network')
+    model = torch.load(model_path)
+    test_model(model, 500)
 
     # plt.xlabel('epochs')
     # plt.ylabel('losses')

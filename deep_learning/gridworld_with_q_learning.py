@@ -13,14 +13,15 @@ def runover(env_producer, model):
         qval = model(state)
         qval_ = qval.data.numpy()
         action = np.argmax(qval_)
-        _, done = game.take_action(action)
+        _, done, truncated = game.take_action(action)
 
         if done:
             if game.reward() > 0:
                 return True
             else:
                 return False
-
+        if truncated:
+            return False
 
 def train(env_producer, model, epochs, socketio):
     losses = []
@@ -50,7 +51,7 @@ def train(env_producer, model, epochs, socketio):
                 action = np.argmax(qval_)
 
             # take the action
-            game.take_action(action)
+            _, _, truncated = game.take_action(action)
             # after making the move, finds the maximum Q value from the
             # new state
             state2_ = game.encode_state()
@@ -76,7 +77,7 @@ def train(env_producer, model, epochs, socketio):
 
             optimizer.step()
             state1 = state2
-            if reward != -1:
+            if reward != -1 or truncated:
                 is_over = True
 
         if epsilon > 0.1:
