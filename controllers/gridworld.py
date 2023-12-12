@@ -4,10 +4,16 @@ import torch
 from flask import request
 
 from environments import GridWorld
-from deep_learning.gridworld_with_q_learning import train
+from deep_learning.gridworld_with_q_learning import train, test_model
 from utils.tools import save_model_and_train_result, get_model_path
 
-gridworld = GridWorld(size=4)
+size = 5
+gridworld = GridWorld(size=size)
+l1 = size * size * 4
+l2 = 150
+l3 = 100
+l4 = 4
+
 
 def GridWorldController(app, socketio):
     @app.post('/gridworld/step')
@@ -34,11 +40,6 @@ def GridWorldController(app, socketio):
         data = request.get_json()
         model_name = data['modelName']
 
-        l1 = 64
-        l2 = 150
-        l3 = 100
-        l4 = 4
-
         model = torch.nn.Sequential(
             torch.nn.Linear(l1, l2),
             torch.nn.ReLU(),
@@ -49,7 +50,10 @@ def GridWorldController(app, socketio):
 
         epochs = 1000
 
-        losses = train(model, epochs, socketio)
+        def env_producer():
+            return GridWorld(size=5)
+
+        losses = train(env_producer, model, epochs, socketio)
 
         if model_name:
             result = {'epochs': epochs, 'losses': losses}
@@ -57,34 +61,21 @@ def GridWorldController(app, socketio):
 
         return {'message': 'ok'}
 
-    @app.post('/gridworld/test_model')
-    def gridworld_test():
+    @app.post('/gridworld/model_policy')
+    def gridworld_model_policy():
         data = request.get_json()
         model_name = data['modelName']
 
         model_path = get_model_path(model_name)
+        model = torch.load(model_path)
 
-        l1 = 64
-        l2 = 150
-        l3 = 100
-        l4 = 4
-
-        model = torch.nn.Sequential(
-            torch.nn.Linear(l1, l2),
-            torch.nn.ReLU(),
-            torch.nn.Linear(l2, l3),
-            torch.nn.ReLU(),
-            torch.nn.Linear(l3, l4),
-        )
-        model.load_state_dict(torch.load(model_path))
-
-        game = GridWorld(size=4)
+        game = GridWorld(size=5)
         grids = {}
         for i, (id, grid) in enumerate(gridworld.grids.items()):
             grids[id] = grid.__dict__
 
             game.current_state = i
-            state_ = game.encode_state().reshape(1, 64)
+            state_ = game.encode_state(noise=False)
             state = torch.from_numpy(state_).float()
             q_values = model(state)
             qs = q_values.squeeze().detach().numpy()
@@ -94,3 +85,17 @@ def GridWorldController(app, socketio):
 
         return {'map': grids}
         
+    @app.post('/gridworld/model_test')
+    def gridworld_model_test():
+        data = request.get_json()
+        model_name = data['modelName']
+
+        model_path = get_model_path(model_name)
+        model = torch.load(model_path)
+
+        def env_producer():
+            return GridWorld(size=5)
+
+        test_model(env_producer, model, 1000, socketio)
+
+        return {'message': 'ok'}

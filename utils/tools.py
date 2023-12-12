@@ -35,6 +35,9 @@ def save_model_and_train_result(model, result, model_name):
         os.makedirs(model_dir)
 
     model_path = os.path.join(model_dir, 'model')
-    torch.save(model.state_dict(), model_path)
+    # save only the model parameters
+    # torch.save(model.state_dict(), model_path)
+    # save the whole model, including the structure
+    torch.save(model, model_path)
     result_path = os.path.join(model_dir, 'result.json')
     save_dict_to_json(result, result_path)

@@ -22,7 +22,7 @@ class GridWorld:
 
         self.init()
 
-    def encode_state(self):
+    def encode_state(self, noise=True):
         # the whole tensor consists of 4 layers, each represents
         # player, goal, pit and wall
         state = np.zeros(self.size * self.size * 4)
@@ -36,6 +36,12 @@ class GridWorld:
             if grid.type != None and grid.type != 'start':
                 offset = offsets[grid.type]
                 state[offset + grid.id] = 1
+
+        # flatten
+        state = state.reshape(1, self.size * self.size * 4)
+        # add noise to state
+        if noise:
+            state = state + np.random.rand(1, self.size * self.size * 4) / 10.0
 
         return state
 
