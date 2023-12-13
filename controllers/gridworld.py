@@ -41,35 +41,9 @@ def GridWorldController(app, socketio):
     @app.post('/gridworld/train')
     def gridworld_train():
         data = request.get_json()
-        model_name = data['modelName']
-        mode = data['mode']
-
-        model = torch.nn.Sequential(
-            torch.nn.Linear(l1, l2),
-            torch.nn.ReLU(),
-            torch.nn.Linear(l2, l3),
-            torch.nn.ReLU(),
-            torch.nn.Linear(l3, l4),
-        )
-
-        epochs = 1000
-
-        def env_producer():
-            return GridWorld(size=5, mode=mode)
-
-        losses = train(env_producer, model, epochs, socketio)
-
-        if model_name:
-            result = {'epochs': epochs, 'losses': losses}
-            save_model_and_train_result(model, result, model_name)
-
-        return {'message': 'ok'}
-
-    @app.post('/gridworld/train_with_replay')
-    def gridworld_train_with_replay():
-        data = request.get_json()
-        model_name = data['modelName']
-        mode = data['mode']
+        model_name = data['model_name']
+        env_params = data['env_params']
+        train_params = data['train_params']
 
         model = torch.nn.Sequential(
             torch.nn.Linear(l1, l2),
@@ -80,21 +54,17 @@ def GridWorldController(app, socketio):
         )
 
         def env_producer():
-            return GridWorld(size=5, mode=mode)
+            return GridWorld(**env_params)
 
-        epochs = 5000
-        train_config = TrainConfig(
-            epochs=epochs,
-            learning_rate=1e-3,
-            batch_size=200,
-            gamma=0.9,
-            epsilon=0.3
-        )
+        train_config = TrainConfig(**train_params)
         q_learning = QLearning(train_config)
         losses = q_learning.train(env_producer, model, socketio)
 
         if model_name:
-            result = {'epochs': epochs, 'losses': losses}
+            result = {
+                'epochs': train_params['epochs'],
+                'losses': losses,
+            }
             save_model_and_train_result(model, result, model_name)
 
         return {'message': 'ok'}
@@ -126,16 +96,19 @@ def GridWorldController(app, socketio):
     @app.post('/gridworld/model_test')
     def gridworld_model_test():
         data = request.get_json()
-        model_name = data['modelName']
-        mode = data['mode']
+        model_name = data['model_name']
+        env_params = data['env_params']
+        test_params = data['test_params']
 
         model_path = get_model_path(model_name)
         model = torch.load(model_path)
 
         def env_producer():
-            return GridWorld(size=5, mode=mode)
+            return GridWorld(**env_params)
 
-        simulator = Simulator(episodes=1000, env_producer=env_producer)
+        simulator = Simulator(
+            episodes=test_params['episodes'],
+            env_producer=env_producer)
         simulator.simulate(model, socketio)
 
         return {'message': 'ok'}
