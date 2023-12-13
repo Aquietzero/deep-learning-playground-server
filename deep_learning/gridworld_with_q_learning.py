@@ -1,27 +1,9 @@
 import numpy as np
 import torch
 import random
-from environments import GridWorld
+import copy
 from utils.tools import clear_console
 
-def runover(env_producer, model):
-    game = env_producer()
-    done = False
-    while not done:
-        state_ = game.encode_state()
-        state = torch.from_numpy(state_).float()
-        qval = model(state)
-        qval_ = qval.data.numpy()
-        action = np.argmax(qval_)
-        _, done, truncated = game.take_action(action)
-
-        if done:
-            if game.reward() > 0:
-                return True
-            else:
-                return False
-        if truncated:
-            return False
 
 def train(env_producer, model, epochs, socketio):
     losses = []
@@ -95,21 +77,3 @@ def train(env_producer, model, epochs, socketio):
         print('epochs: %d / %d' % (i + 1, epochs))
 
     return losses
-
-
-def test_model(env_producer, model, num_games, socketio):
-    win_count = 0
-    for i in range(num_games):
-        win = runover(env_producer, model)
-        if win:
-            win_count += 1
-
-        socketio.emit('test_progress', {
-            'num_games': num_games,
-            'current': i + 1,
-        })
-        socketio.emit('testing_info', {
-            'success_rate': win_count / (i + 1)
-        })
-
-    print('result: %d / %d' % (win_count, num_games))

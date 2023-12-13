@@ -6,14 +6,6 @@ from controllers.gridworld import GridWorldController
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 
-@app.route('/')
-def hello_world():
-    res = {
-        'msg': 'ok',
-        'data': [1, 2, 3, 4, 5]
-    }
-    return res
-
 socketio = SocketIO(
     app,
     cors_allowed_origins='*',
@@ -22,4 +14,4 @@ socketio = SocketIO(
 GridWorldController(app, socketio)
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, debug=True)

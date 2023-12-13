@@ -4,14 +4,17 @@ import torch
 from flask import request
 
 from environments import GridWorld
-from deep_learning.gridworld_with_q_learning import train, test_model
+from deep_learning.gridworld_with_q_learning import train
+from deep_learning.core.train_config import TrainConfig
+from deep_learning.core.simulator import Simulator
+from deep_learning.q_learning import QLearning
 from utils.tools import save_model_and_train_result, get_model_path
 
 size = 5
 gridworld = GridWorld(size=size)
 l1 = size * size * 4
-l2 = 150
-l3 = 100
+l2 = 250
+l3 = 150
 l4 = 4
 
 
@@ -62,6 +65,40 @@ def GridWorldController(app, socketio):
 
         return {'message': 'ok'}
 
+    @app.post('/gridworld/train_with_replay')
+    def gridworld_train_with_replay():
+        data = request.get_json()
+        model_name = data['modelName']
+        mode = data['mode']
+
+        model = torch.nn.Sequential(
+            torch.nn.Linear(l1, l2),
+            torch.nn.ReLU(),
+            torch.nn.Linear(l2, l3),
+            torch.nn.ReLU(),
+            torch.nn.Linear(l3, l4),
+        )
+
+        def env_producer():
+            return GridWorld(size=5, mode=mode)
+
+        epochs = 5000
+        train_config = TrainConfig(
+            epochs=epochs,
+            learning_rate=1e-3,
+            batch_size=200,
+            gamma=0.9,
+            epsilon=0.3
+        )
+        q_learning = QLearning(train_config)
+        losses = q_learning.train(env_producer, model, socketio)
+
+        if model_name:
+            result = {'epochs': epochs, 'losses': losses}
+            save_model_and_train_result(model, result, model_name)
+
+        return {'message': 'ok'}
+
     @app.post('/gridworld/model_policy')
     def gridworld_model_policy():
         data = request.get_json()
@@ -98,6 +135,7 @@ def GridWorldController(app, socketio):
         def env_producer():
             return GridWorld(size=5, mode=mode)
 
-        test_model(env_producer, model, 1000, socketio)
+        simulator = Simulator(episodes=1000, env_producer=env_producer)
+        simulator.simulate(model, socketio)
 
         return {'message': 'ok'}
