@@ -10,31 +10,15 @@ from deep_learning.core.simulator import Simulator
 from deep_learning.q_learning import QLearning
 from utils.tools import save_model_and_train_result, get_model_path
 
-size = 5
-gridworld = GridWorld(size=size)
-l1 = size * size * 4
-l2 = 250
-l3 = 150
-l4 = 4
-
 
 def GridWorldController(app, socketio):
-    @app.post('/gridworld/step')
-    def gridworld_step():
-        data = request.get_json()
-        state = data['state']
-        action = data['action']
-        print('state: %s, action: %s' % (state, action))
-        next_state, done = gridworld.step(state, action)
-        return {
-            'next_state': next_state,
-            'done': done,
-        }
-
-    @app.get('/gridworld/map')
+    @app.post('/gridworld/map')
     def gridworld_map():
+        env_params = request.get_json()
+        env = GridWorld(**env_params)
+
         grids = {}
-        for i, (id, grid) in enumerate(gridworld.grids.items()):
+        for i, (id, grid) in enumerate(env.grids.items()):
             grids[id] = grid.__dict__
         return {'map': grids}
 
@@ -44,6 +28,12 @@ def GridWorldController(app, socketio):
         model_name = data['model_name']
         env_params = data['env_params']
         train_params = data['train_params']
+
+        size = env_params['size']
+        l1 = size * size * 4 # 4 x 4 x 4 = 64
+        l2 = l1 * 4          # 64 x 4 = 256
+        l3 = l1 * 3          # 64 x 3 = 192
+        l4 = 4               # number of actions
 
         model = torch.nn.Sequential(
             torch.nn.Linear(l1, l2),
@@ -72,18 +62,27 @@ def GridWorldController(app, socketio):
     @app.post('/gridworld/model_policy')
     def gridworld_model_policy():
         data = request.get_json()
-        model_name = data['modelName']
+        model_name = data['model_name']
+        env_params = data['env_params']
 
         model_path = get_model_path(model_name)
         model = torch.load(model_path)
 
-        game = GridWorld(size=5, mode='random')
+        def env_producer():
+            return GridWorld(**env_params)
+
+        simulator = Simulator(
+            episodes=1,
+            env_producer=env_producer)
+
+        result = simulator.runover(model)
+        env = simulator.env
         grids = {}
-        for i, (id, grid) in enumerate(game.grids.items()):
+        for i, (id, grid) in enumerate(env.grids.items()):
             grids[id] = grid.__dict__
 
-            game.current_state = i
-            state_ = game.encode_state(noise=False)
+            env.current_state = i
+            state_ = env.encode_state(noise=False)
             state = torch.from_numpy(state_).float()
             q_values = model(state)
             qs = q_values.squeeze().detach().numpy()
@@ -91,7 +90,7 @@ def GridWorldController(app, socketio):
             action_dist = np.exp(qs) / sum(np.exp(qs))
             grids[id]['q_values'] = action_dist.tolist()
 
-        return {'map': grids}
+        return {'map': grids, 'result': result}
         
     @app.post('/gridworld/model_test')
     def gridworld_model_test():

@@ -15,8 +15,9 @@ class Grid:
 
 
 class GridWorld:
-    def __init__(self, size=4, truncate=15, mode='static'):
+    def __init__(self, size=4, pits=2, truncate=15, mode='static'):
         self.size = size
+        self.pits = pits
         self.mode = mode
         self.current_state = 0
         self.grids = {}
@@ -76,7 +77,7 @@ class GridWorld:
             goal_row = randrange(1, self.size)
             goal_col = randrange(1, self.size)
             self.set_grid(goal_row, goal_col, 'goal')
-            pit_count = 3 
+            pit_count = self.pits
             while pit_count > 0:
                 pit_row = randrange(1, self.size)
                 pit_col = randrange(1, self.size)

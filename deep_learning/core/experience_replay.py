@@ -14,7 +14,7 @@ class ExperienceReplay:
 
     def add_memory(self, state1, action, reward, state2, done):
         self.counter += 1
-        if self.counter % 500 == 0:
+        if self.counter % self.N == 0:
             self.shuffle_memory()
 
         # if the memory is not full, adds to the list
